@@ -1,0 +1,100 @@
+#! /bin/bash
+
+<<comment
+[file name]: system_report.sh
+[author name]: Lei Luo #041068533
+[Course number]: CST8102-320
+[Description of the script]:A system report with relevant information.
+comment
+
+function sysInfo() {
+
+  cpu_threshold=0.8
+  mem_threshold=50
+  disk_threshold=70
+
+  echo "Generating system report..."
+  echo "System information:"
+  echo "Hostname: $(hostname)"
+  echo "Operating System: $(uname -s)"
+  echo "Kernel Version: $(uname -r)"
+  echo "CPU Information:$(lscpu | grep "Model name") "
+  echo "$(free -m | awk 'NR==2{printf "Total Memory: %s MB \nFree Memory: %s MB", $3, $4}')"
+  echo "$(df -h / | awk 'NR==2{printf "Disk Usage Information: \n Total: %s  ,Used: %s ", $2, $3}')"
+  echo "Report generated at: $(date)"
+
+  # Check the current CPU load and display a warning message if the load exceeds a
+  # certain threshold (e.g., 80%). Otherwise, display a success message indicating
+  # that the CPU load is within acceptable limits.
+
+  load=$(uptime | cut -d ',' -f 4)
+
+  if (($(echo "$load > $cpu_threshold" | bc -l))); then
+    echo "Warning: CPU load is high. Current load: $load"
+  else
+    echo "Success: CPU load is within acceptable limits ($load%)"
+  fi
+
+  # Calculate the percentage of memory usage and display a warning message if the
+  # memory usage exceeds a 50%. Otherwise, display a success message indicating
+  # that the memory usage is within acceptable limits.
+  
+
+
+  mem=$(free -m | awk 'NR==2{printf "%.2f", $3/$2*100}')
+  if (($(echo "$mem > $mem_threshold" | bc -l))); then
+    echo "Warning: Memory usage is high($mem%)."
+  else
+    echo "Success: Memory usage is within acceptable limits($mem%)"
+  fi
+
+  # Check the disk usage of the root filesystem (/) and display a warning message if
+  # it exceeds 70%. Otherwise, display a success message indicating that the disk
+  # usage is within acceptable limits.
+
+  disk=$(df -h / | awk 'NR==2{printf "%.2f", $3/$2*100}')
+
+
+  # Check if disk usage is above the threshold
+  if (($(echo "$disk > $disk_threshold" | bc -l))); then
+    echo "Warning: Disk usage is high($disk%)"
+  else
+    echo "Success: Disk usage is within acceptable limits($disk%)"
+  fi
+}
+
+while true; do
+  echo "System Monitoring and Reporting"
+  echo "+++++++++++++++++++++++++++++++++"
+  echo "1.Generate System Report"
+  echo "2.Create Archive"
+  echo "3.Exit"
+  echo "+++++++++++++++++++++++++++++++++"
+ 
+
+  read -p "Enter your choice: " choice
+
+  case $choice in
+  1)
+    sysInfo > system_report.log  
+    cat system_report.log
+    ;;
+  2)
+    if [[ -f system_report.log ]]; then
+      tar -czf system_report.tar.gz system_report.log
+      echo "Archive created successfully."
+    else
+      sysInfo >system_report.log
+      tar -czf system_report.tar.gz system_report.log
+      echo "Archive created successfully."
+    fi
+    ;;
+  3)
+    exit
+    ;;
+  *)
+    echo "Invalid option! Please choose a valid menu item".
+    ;;
+  esac
+done
+
